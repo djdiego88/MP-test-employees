@@ -1,0 +1,67 @@
+<?php
+/**
+ * Implements hook_init().
+ */
+function employees_init() 
+{
+    module_load_include('php', 'employees', 'employees.api');
+    module_load_include('inc', 'employees', 'employees_forms');
+}
+
+/**
+ * Implements hook_menu().
+ */
+function employees_menu() 
+{
+    $items['admin/config/content/employees'] = array(
+        'title' => t('Configuración API de Empleados'),
+        'page callback' => 'drupal_get_form',
+        'page arguments' => array('employees_settings_form'),
+        'access arguments' => array('access administration pages'),
+    );
+    
+    return $items;
+}
+
+/**
+* Implements hook_views_api().
+*/
+function employees_views_api() 
+{
+    return array ('api' => 3.0);
+}
+
+/**
+* Implements hook_views_default_views().
+*/
+function employees_views_default_views()
+{
+    // Check for all view file in views directory
+    $files = file_scan_directory(drupal_get_path('module', 'employees') . '/views', '/.*\.inc$/');
+
+    // Add view to list of views
+    foreach ($files as $filepath => $file) {
+        require $filepath;
+        if (isset($view)) {
+        $views[$view->name] = $view;
+        }
+    }
+
+    // At the end, return array of default views.
+    return $views;
+}
+
+/**
+ * Implements hook_theme().
+ */
+function employees_theme($existing, $type, $theme, $path)
+{
+    $theme = array();
+    $theme['node__employees'] = array(
+    'render element' => 'content',
+    'base hook' => 'node',
+    'template' => 'node--employees',
+    'path' => drupal_get_path('module', 'employees') . '/templates',
+    );
+    return $theme;
+}

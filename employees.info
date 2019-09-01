@@ -1,0 +1,11 @@
+name = "Employees"
+description = "Employees module for Michael Page Test. Created by Diego Castillo."
+package = Michael Page
+core = 7.x
+php = 7.1
+configure = admin/config/content/employees
+
+dependencies[] = drupal:node
+dependencies[] = drupal:taxonomy
+dependencies[] = ctools
+dependencies[] = views

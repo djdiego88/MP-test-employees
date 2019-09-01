@@ -1,0 +1,169 @@
+<?php
+
+/**
+ * Implements hook_install().
+ */
+function employees_install() 
+{
+    /**
+     * Create new taxonomy and terms
+     */
+    mp_create_tax_terms();
+    
+    /**
+     * Create new content type
+     */
+    mp_create_node_type();
+}
+
+/**
+ * Implements hook_uninstall().
+ */
+function employees_uninstall()
+{
+    /**
+     * Delete taxonomy
+     */
+    $vocab = taxonomy_vocabulary_machine_name_load('salary_type');
+    if($vocab) taxonomy_vocabulary_delete($vocab->vid);
+
+    /** 
+     * Delete content type
+     */
+    $type = node_type_load('employees');
+    if ($type) {
+        $query = db_select('node', 'n');
+        $query->fields('n', array('nid'));
+        $query->condition('n.type', 'employees');
+        $nids = $query->execute()->fetchCol();
+        if (!empty($nids)) {
+            node_delete_multiple($nids);
+        }   
+        node_type_delete('employees');
+    }
+}
+
+function mp_create_tax_terms() 
+{
+    // Create new taxonomy
+    $new_vocab = (object) [
+        'name' => t('Tipo salario'),
+        'description' => t('Este vocabulario define las diferentes clases de salario.'),
+        'machine_name' => 'salary_type',
+    ];  
+    taxonomy_vocabulary_save($new_vocab);
+
+    // Create new terms
+    $vocab = taxonomy_vocabulary_machine_name_load('salary_type');
+
+    $terms = [
+        ['name' => t('Salario bajo'), 'vid' => $vocab->vid],
+        ['name' => t('Salario medio'), 'vid' => $vocab->vid],
+        ['name' => t('Salario alto'), 'vid' => $vocab->vid] 
+    ];
+ 
+    foreach($terms as $term) {
+        taxonomy_term_save((object) $term);
+    }
+    
+}
+
+function mp_create_node_type() 
+{
+    $type = node_type_load('employees');
+    if ($type) return;
+    $employees = array(
+        'type' => 'employees',
+        'name' => 'Empleados',
+        'base' => 'node_content',
+        'description' => t('Este contenido muestra la información de los empleados.'),
+        'title_label' => t('Nombre del empleado'),
+        'custom' => TRUE,
+    );
+
+    $node_employees = node_type_set_defaults($employees);
+
+    foreach (_employees_installed_fields() as $field) {
+        field_create_field($field);
+    }
+
+    foreach (_employees_installed_instances() as $instance) {
+        field_create_instance($instance);
+    }
+
+    node_type_save($node_employees);
+}
+
+function _employees_installed_fields() {
+    return array(
+        'salary_type' => array(
+            'field_name' => 'field_salary_type',
+            'type' => 'taxonomy_term_reference',
+            'settings' => array(
+            'allowed_values' => array(
+                array(
+                'vocabulary' => 'salary_type',
+                'parent' => 0
+                ),
+            ),
+            ),
+        ),
+        'remote_id' => array(
+            'field_name' => 'field_remote_id',
+            'type' => 'text',
+        ),
+        'age' => array(
+            'field_name' => 'field_age',
+            'type' => 'text',
+        ),
+
+    );
+}
+
+function _employees_installed_instances() {
+    return array(
+        'salary_type' => array(
+            'field_name' => 'field_salary_type',
+            'label' => t('Tipo de Salario'),
+            'entity_type' => 'node',
+            'bundle' => 'employees',
+            'required' => true,
+            'widget' => array(
+                'type' => 'options_select'
+            ),
+            'display' => array(
+                'default' => array('type' => 'hidden'),
+                'teaser' => array('type' => 'hidden')
+            )
+        ),
+        'remote_id' => array(
+            'field_name' => 'field_remote_id',
+            'label' => t('Id Remoto'),
+            'entity_type'   => 'node',
+            'bundle'        => 'employees',
+            'required' => true,
+            'widget' => array(
+                'type' => 'text_textfield',
+                'settings' => array('size' => 50),
+            ),
+            'settings' => array(
+                'text_processing' => 0,
+            ),
+        ),
+        'age' => array(
+            'field_name' => 'field_age',
+            'label' => t('Edad'),
+            'entity_type'   => 'node',
+            'bundle'        => 'employees',
+            'required' => true,
+            'widget' => array(
+                'type' => 'text_textfield',
+                'settings' => array('size' => 10),
+            ),
+            'settings' => array(
+                'text_processing' => 0,
+            ),
+        ),
+
+    );
+}
